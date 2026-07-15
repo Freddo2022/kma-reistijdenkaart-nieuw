@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <title>KmA ReistijdenKaart</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <style>
+    :root {
+      --bg: #eef2f5;
+      --panel: #ffffff;
+      --panel-border: #dce3ea;
+      --text-main: #10233b;
+      --text-subtle: #53677e;
+      --accent: #1677ff;
+      --accent-soft: #edf4ff;
+      --status-error: #b00020;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      height: 100%;
+      margin: 0;
+    }
+
+    body {
+      font-family: "Manrope", "Segoe UI", sans-serif;
+      background: radial-gradient(circle at 20% 0%, #f7fbff 0%, var(--bg) 55%);
+      color: var(--text-main);
+    }
+
+    .app-shell {
+      display: grid;
+      grid-template-columns: 350px 1fr;
+      height: 100vh;
+      gap: 12px;
+      padding: 12px;
+    }
+
+    .sidebar {
+      background: var(--panel);
+      border: 1px solid var(--panel-border);
+      border-radius: 16px;
+      padding: 18px;
+      overflow-y: auto;
+      box-shadow: 0 10px 24px rgba(16, 35, 59, 0.08);
+    }
+
+    .brand-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .brand-badge {
+      width: 34px;
+      height: 34px;
+      border-radius: 9px;
+      background: linear-gradient(160deg, #1f8bff 0%, #1162d6 100%);
+      color: #fff;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      letter-spacing: 0.02em;
+    }
+
+    .title {
+      font-size: 24px;
+      font-weight: 800;
+      margin: 0;
+      line-height: 1.12;
+    }
+
+    .subtitle {
+      margin: 2px 0 0;
+      color: var(--text-subtle);
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+    }
+
+    .control-card {
+      background: linear-gradient(180deg, #ffffff 0%, #f7faff 100%);
+      border: 1px solid var(--panel-border);
+      border-radius: 12px;
+      padding: 12px;
+      margin-bottom: 10px;
+    }
+
+    .control-label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #213e61;
+    }
+
+    .control-input {
+      width: 100%;
+      min-height: 38px;
+      border: 1px solid #cdd8e5;
+      border-radius: 8px;
+      padding: 8px 10px;
+      background: #fff;
+      font-family: inherit;
+      font-size: 14px;
+      color: var(--text-main);
+    }
+
+    .slider-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: center;
+    }
+
+    #travelTimeRange {
+      width: 100%;
+      accent-color: var(--accent);
+    }
+
+    #travelTimeValue {
+      font-weight: 700;
+      color: #1f4a83;
+      background: var(--accent-soft);
+      border: 1px solid #cee1ff;
+      border-radius: 7px;
+      padding: 6px 8px;
+      min-width: 70px;
+      text-align: center;
+    }
+
+    #statusText {
+      min-height: 18px;
+      margin-top: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-subtle);
+    }
+
+    .note {
+      margin-top: 12px;
+      padding: 10px;
+      background: #f3f7fd;
+      border: 1px dashed #bfd4ec;
+      border-radius: 10px;
+      color: #476486;
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .map-panel {
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid var(--panel-border);
+      box-shadow: 0 10px 24px rgba(16, 35, 59, 0.08);
+      background: #dce8f5;
+    }
+
+    #map {
+      width: 100%;
+      height: 100%;
+    }
+
+    @media (max-width: 980px) {
+      .app-shell {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto 1fr;
+        height: auto;
+        min-height: 100vh;
+      }
+
+      .sidebar {
+        border-radius: 12px;
+      }
+
+      .map-panel {
+        min-height: 65vh;
+        border-radius: 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand-row">
+      <div class="brand-badge">D</div>
+      <div>
+        <h1 class="title">KmA ReistijdenKaart</h1>
+        <p class="subtitle">DriveTimeMatrix | PC4 Postcodevlakken</p>
+      </div>
+    </div>
+
+    <div class="control-card">
+      <label class="control-label" for="pc4Select">PC4 herkomst</label>
+      <select class="control-input" id="pc4Select">
+        <option value="">Kies een PC4 herkomst...</option>
+      </select>
+    </div>
+
+    <div class="control-card">
+      <label class="control-label" for="travelTimeRange">Selectie reistijd (min)</label>
+      <div class="slider-row">
+        <input id="travelTimeRange" type="range" min="10" max="240" step="5" value="220">
+        <span id="travelTimeValue">220 min</span>
+      </div>
+    </div>
+
+    <div class="control-card">
+      <label class="control-label" for="metricSelect">Kaartlaag</label>
+      <select class="control-input" id="metricSelect">
+        <option value="time_min">Toon reistijd (minuten)</option>
+        <option value="distance_km">Toon afstand (km)</option>
+      </select>
+    </div>
+
+    <div id="statusText"></div>
+
+    <div class="note">
+      Kies eerst een herkomst-PC4. Daarna kun je met de schuif direct filteren op maximale reistijd.
+    </div>
+  </aside>
+
+  <main class="map-panel">
+    <div id="map"></div>
+  </main>
+</div>
+
+<script>
+const CONFIG = {
+  mapCenter: [52.1, 5.3],
+  mapZoom: 8,
+  apiBase: window.location.origin,
+  fallbackApiBase: `http://${window.location.hostname}:8000`,
+  geojsonPath: "./geo/pc4_gebieden.geojson",
+  noDataColor: "#cccccc",
+  filteredOutColor: "#ececec",
+  noDataOpacity: 0.1,
+  dataOpacity: 0.72,
+  borderColor: "#555",
+  borderWeight: 0.5
+};
+
+let map = L.map('map').setView(CONFIG.mapCenter, CONFIG.mapZoom);
+let pc4Layer;
+let pc4LayersByCode = {};
+let allPc4Codes = [];
+let currentValues = {};
+let rawRowsByDest = {};
+let selectedMetric = "time_min";
+let selectedDestination = "";
+let maxTravelTimeMin = 220;
+let legendControl;
+const pc4SelectEl = document.getElementById("pc4Select");
+const travelTimeRangeEl = document.getElementById("travelTimeRange");
+const travelTimeValueEl = document.getElementById("travelTimeValue");
+const metricSelectEl = document.getElementById("metricSelect");
+const statusTextEl = document.getElementById("statusText");
+
+function setStatus(message, isError = false) {
+  statusTextEl.textContent = message;
+  statusTextEl.style.color = isError ? "#b00020" : "#444";
+}
+
+function buildApiCandidates() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const apiOverride = urlParams.get("api");
+  const candidates = [];
+
+  if (apiOverride) {
+    candidates.push(apiOverride);
+  }
+
+  if (CONFIG.apiBase && CONFIG.apiBase !== "null") {
+    candidates.push(CONFIG.apiBase);
+  }
+
+  if (window.location.hostname) {
+    const hostOn8000 = `http://${window.location.hostname}:8000`;
+    if (!candidates.includes(hostOn8000)) {
+      candidates.push(hostOn8000);
+    }
+  }
+
+  if (!candidates.includes(CONFIG.fallbackApiBase)) {
+    candidates.push(CONFIG.fallbackApiBase);
+  }
+
+  if (!candidates.includes("http://127.0.0.1:8000")) {
+    candidates.push("http://127.0.0.1:8000");
+  }
+
+  if (!candidates.includes("http://localhost:8000")) {
+    candidates.push("http://localhost:8000");
+  }
+
+  return candidates;
+}
+
+async function fetchDtmWithFallback(origin) {
+  const bases = buildApiCandidates();
+  let lastError = null;
+
+  for (const base of bases) {
+    try {
+      const response = await fetch(`${base}/dtm?origin=${encodeURIComponent(origin)}`);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      const data = await response.json();
+      return { data, base };
+    } catch (err) {
+      lastError = err;
+    }
+  }
+
+  throw lastError || new Error("Kon DTM data niet laden");
+}
+
+function getFeaturePc4(feature) {
+  const props = (feature && feature.properties) || {};
+  const raw = props.pc4 ?? props.PC4 ?? props.Name ?? props.name ?? props.postcode ?? props.POSTCODE;
+  if (raw == null) return null;
+  return String(raw).trim();
+}
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  maxZoom: 19,
+  attribution: '&copy; OpenStreetMap'
+}).addTo(map);
+
+// 1. Load PC4 polygons
+fetch(CONFIG.geojsonPath)
+  .then(res => res.json())
+  .then(data => {
+    pc4Layer = L.geoJSON(data, {
+      style: feature => ({
+        color: CONFIG.borderColor,
+        weight: CONFIG.borderWeight,
+        fillOpacity: 0.3
+      }),
+      onEachFeature: (feature, layer) => {
+        let pc4 = getFeaturePc4(feature);
+        if (!pc4) return;
+        pc4LayersByCode[pc4] = layer;
+        layer.bindTooltip("PC4: " + pc4);
+      }
+    }).addTo(map);
+
+    allPc4Codes = Object.keys(pc4LayersByCode).sort();
+    populateDestinationSelect();
+    map.fitBounds(pc4Layer.getBounds());
+  });
+
+// 2. Origins are selected via the single PC4 dropdown
+
+// 3. Color rules per metric
+function getMetricScheme(metric) {
+  if (metric === "distance_km") {
+    return {
+      label: "Afstand (km)",
+      bins: [
+        { max: 5, color: "#2c7bb6", text: "0-5 km" },
+        { max: 10, color: "#74add1", text: "5-10 km" },
+        { max: 20, color: "#abd9e9", text: "10-20 km" },
+        { max: 30, color: "#fdae61", text: "20-30 km" },
+        { max: 40, color: "#f46d43", text: "30-40 km" },
+        { max: Infinity, color: "#d7191c", text: "> 40 km" }
+      ]
+    };
+  }
+
+  return {
+    label: "Reistijd (min)",
+    bins: [
+      { max: 10, color: "#2c7bb6", text: "0-10 min" },
+      { max: 20, color: "#74add1", text: "10-20 min" },
+      { max: 30, color: "#abd9e9", text: "20-30 min" },
+      { max: 45, color: "#fdae61", text: "30-45 min" },
+      { max: 60, color: "#f46d43", text: "45-60 min" },
+      { max: Infinity, color: "#d7191c", text: "> 60 min" }
+    ]
+  };
+}
+
+function getColor(value, metric) {
+  if (value == null) return CONFIG.noDataColor;
+
+  const scheme = getMetricScheme(metric);
+  for (const bin of scheme.bins) {
+    if (value <= bin.max) return bin.color;
+  }
+
+  return CONFIG.noDataColor;
+}
+
+function updateTravelTimeLabel() {
+  travelTimeValueEl.textContent = `${maxTravelTimeMin} min`;
+}
+
+function populateDestinationSelect() {
+  const previous = pc4SelectEl.value;
+  const codes = allPc4Codes.length > 0 ? allPc4Codes : [];
+
+  pc4SelectEl.innerHTML = "";
+  const defaultOpt = document.createElement("option");
+  defaultOpt.value = "";
+  defaultOpt.textContent = "Kies een PC4 herkomst...";
+  pc4SelectEl.appendChild(defaultOpt);
+
+  codes.forEach(pc4 => {
+    const option = document.createElement("option");
+    option.value = pc4;
+    option.textContent = pc4;
+    pc4SelectEl.appendChild(option);
+  });
+
+  if (previous && codes.includes(previous)) {
+    pc4SelectEl.value = previous;
+  }
+}
+
+function rebuildCurrentValues() {
+  currentValues = {};
+
+  Object.keys(rawRowsByDest).forEach(pc4 => {
+    const row = rawRowsByDest[pc4];
+    if (row.time_min <= maxTravelTimeMin) {
+      currentValues[pc4] = selectedMetric === "distance_km" ? row.distance_km : row.time_min;
+    }
+  });
+}
+
+function zoomToSelectedDestination() {
+  if (!selectedDestination) return;
+
+  const layer = pc4LayersByCode[selectedDestination];
+  if (!layer) return;
+
+  map.fitBounds(layer.getBounds(), { maxZoom: 11 });
+}
+
+// 4. Apply choropleth
+function updateChoropleth() {
+  if (!pc4Layer) return;
+
+  pc4Layer.setStyle(feature => {
+    let pc4 = getFeaturePc4(feature);
+    if (!pc4) {
+      return {
+        color: CONFIG.borderColor,
+        weight: CONFIG.borderWeight,
+        fillOpacity: CONFIG.noDataOpacity,
+        fillColor: CONFIG.noDataColor
+      };
+    }
+
+    const row = rawRowsByDest[pc4];
+    const isWithinTimeFilter = row != null && row.time_min <= maxTravelTimeMin;
+    let value = currentValues[pc4];
+    const isSelectedDestination = selectedDestination !== "" && selectedDestination === pc4;
+
+    return {
+      color: isSelectedDestination ? "#111" : CONFIG.borderColor,
+      weight: isSelectedDestination ? 2.2 : CONFIG.borderWeight,
+      fillOpacity: value != null ? CONFIG.dataOpacity : CONFIG.noDataOpacity,
+      fillColor: isWithinTimeFilter ? getColor(value, selectedMetric) : CONFIG.filteredOutColor
+    };
+  });
+
+  pc4Layer.eachLayer(layer => {
+    const pc4 = getFeaturePc4(layer.feature);
+    if (!pc4) {
+      layer.bindTooltip("PC4: onbekend");
+      return;
+    }
+
+    const row = rawRowsByDest[pc4];
+
+    if (!row) {
+      layer.bindTooltip(`PC4: ${pc4}<br>geen data`);
+      return;
+    }
+
+    const isFilteredOut = row.time_min > maxTravelTimeMin;
+    const filterText = isFilteredOut ? `<br>buiten filter (> ${maxTravelTimeMin} min)` : "";
+    layer.bindTooltip(`PC4: ${pc4}<br>${row.time_min.toFixed(1)} min<br>${row.distance_km.toFixed(2)} km${filterText}`);
+  });
+
+  updateLegend();
+}
+
+function updateLegend() {
+  const scheme = getMetricScheme(selectedMetric);
+  const legendDiv = document.getElementById("legendItems");
+  if (!legendDiv) return;
+
+  legendDiv.innerHTML = `
+    <div style="font-weight:700; margin-bottom:6px;">${scheme.label}</div>
+    ${scheme.bins.map(bin => `
+      <div style="display:flex; align-items:center; gap:6px; margin-bottom:4px;">
+        <span style="display:inline-block; width:14px; height:14px; background:${bin.color}; border:1px solid #666;"></span>
+        <span>${bin.text}</span>
+      </div>
+    `).join("")}
+    <div style="display:flex; align-items:center; gap:6px; margin-top:4px;">
+      <span style="display:inline-block; width:14px; height:14px; background:${CONFIG.noDataColor}; border:1px solid #666;"></span>
+      <span>Geen data</span>
+    </div>
+  `;
+}
+
+function ensureLegend() {
+  if (legendControl) return;
+
+  legendControl = L.control({ position: "bottomright" });
+  legendControl.onAdd = function () {
+    const div = L.DomUtil.create("div", "info legend");
+    div.style.background = "white";
+    div.style.padding = "10px";
+    div.style.border = "1px solid #bbb";
+    div.style.borderRadius = "6px";
+    div.style.boxShadow = "0 1px 5px rgba(0,0,0,0.2)";
+    div.style.fontSize = "13px";
+    div.id = "legendItems";
+    return div;
+  };
+
+  legendControl.addTo(map);
+  updateLegend();
+}
+
+ensureLegend();
+window.addEventListener("resize", () => map.invalidateSize());
+setTimeout(() => map.invalidateSize(), 120);
+
+// 5. Single PC4 dropdown acts as origin selector
+pc4SelectEl.addEventListener("change", () => {
+  const origin = pc4SelectEl.value;
+  selectedDestination = origin;
+
+  if (!origin) {
+    rawRowsByDest = {};
+    currentValues = {};
+    setStatus("Kies een PC4 om reistijden te tonen.");
+    updateChoropleth();
+    return;
+  }
+
+  setStatus(`Data laden voor PC4 ${origin}...`);
+
+  fetchDtmWithFallback(origin)
+    .then(({ data, base }) => {
+      rawRowsByDest = {};
+      data.results.forEach(row => {
+        rawRowsByDest[row.dest_pc4] = {
+          time_min: row.time_min,
+          distance_km: row.distance_km
+        };
+      });
+
+      rebuildCurrentValues();
+      updateChoropleth();
+      zoomToSelectedDestination();
+      setStatus(`DTM geladen voor PC4 ${origin} via ${base} (${data.count} records).`);
+    })
+    .catch((err) => {
+      rawRowsByDest = {};
+      currentValues = {};
+      updateChoropleth();
+      setStatus(`Kon geen DTM data laden voor PC4 ${origin}: ${err.message}`, true);
+    });
+});
+
+metricSelectEl.addEventListener("change", () => {
+  selectedMetric = metricSelectEl.value;
+  rebuildCurrentValues();
+  updateChoropleth();
+});
+
+travelTimeRangeEl.addEventListener("input", () => {
+  maxTravelTimeMin = Number(travelTimeRangeEl.value);
+  updateTravelTimeLabel();
+  rebuildCurrentValues();
+  updateChoropleth();
+});
+
+updateTravelTimeLabel();
+setStatus("Kies een PC4 om reistijden te tonen.");
+</script>
+
+</body>
+</html>
