@@ -2,11 +2,60 @@ from flask import send_from_directory
 from flask import Flask, request, jsonify
 import csv
 import os
+import shutil
+import urllib.request
 
 DTM_FILE = "dtm_pc4.csv"   # jouw bestand
 
 # datastructuur { pc4_from: { pc4_to: {time_min, distance_km} } }
 dtm = {}
+
+
+def is_lfs_pointer_file(path):
+    if not os.path.exists(path):
+        return False
+
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            first_line = f.readline().strip()
+        return first_line.startswith("version https://git-lfs.github.com/spec/v1")
+    except Exception:
+        return False
+
+
+def download_file(url, destination):
+    temp_path = destination + ".download"
+
+    with urllib.request.urlopen(url, timeout=60) as response:
+        with open(temp_path, "wb") as out:
+            shutil.copyfileobj(response, out)
+
+    os.replace(temp_path, destination)
+
+
+def ensure_dtm_file(path):
+    # Als het bestand ontbreekt of een Git LFS-pointer is, haal de echte CSV op.
+    needs_download = (not os.path.exists(path)) or is_lfs_pointer_file(path)
+    if not needs_download:
+        return
+
+    dtm_url = os.environ.get("DTM_CSV_URL", "").strip()
+    if not dtm_url:
+        raise RuntimeError(
+            "DTM bestand ontbreekt of is een Git LFS-pointer. "
+            "Zet DTM_CSV_URL als environment variable met een directe CSV-link."
+        )
+
+    print(f"DTM CSV downloaden vanaf: {dtm_url}")
+    download_file(dtm_url, path)
+
+    if is_lfs_pointer_file(path):
+        raise RuntimeError(
+            "Gedownloade DTM CSV is nog steeds een Git LFS-pointer. "
+            "Gebruik een directe download-URL naar de echte CSV-inhoud."
+        )
+
+    print("DTM CSV download voltooid.")
 
 
 def load_dtm(path):
@@ -46,6 +95,7 @@ def load_dtm(path):
 
 
 # laad de data bij start
+ensure_dtm_file(DTM_FILE)
 load_dtm(DTM_FILE)
 print(f"DTM geladen: {len(dtm)} origins")
 
