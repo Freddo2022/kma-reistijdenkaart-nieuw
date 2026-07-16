@@ -164,7 +164,7 @@
       margin: 0 0 12px;
       padding: 8px 12px;
       border-radius: 8px;
-      border: 1px solid #efb1b1;
+      border: 2px solid #efb1b1;
       background: #ffe3e3;
       color: #7d1f1f;
       text-decoration: none;
@@ -290,7 +290,7 @@
         <br>
         </div>
     </div>  
-    <a class="dtm-link-button" href="https://www.kilometerafstanden.nl/product/drive-time-matrix-dtm-pc4-zwaartepunten/" target="_blank" rel="noopener noreferrer">Koop PC4 DriveTimeMatrix in onze webshop</a>
+    <a class="dtm-link-button" href="https://www.kilometerafstanden.nl/product/drive-time-matrix-dtm-pc4-zwaartepunten/" target="_blank" rel="noopener noreferrer">Koop PC4 DriveTimeMatrix in webshop</a>
     <br><br>
     <h1 class="module-title">PC4 Isochronenkaart</h1>
     <div class="control-card">
@@ -798,7 +798,7 @@ pc4SelectEl.addEventListener("change", () => {
       rebuildCurrentValues();
       updateChoropleth();
       zoomToSelectedDestination();
-      setStatus(`DTM geladen voor PC4 ${origin} via ${base} (${data.count} records).`);
+      setStatus("");
     })
     .catch((err) => {
       rawRowsByDest = {};
