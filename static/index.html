@@ -152,6 +152,80 @@
       color: var(--text-subtle);
     }
 
+    .sidebar-divider {
+      height: 2px;
+      margin: 14px 0;
+      border-radius: 999px;
+      background: linear-gradient(90deg, rgba(22, 119, 255, 0.15) 0%, rgba(22, 119, 255, 0.65) 50%, rgba(22, 119, 255, 0.15) 100%);
+    }
+
+    .module-title {
+      margin: 0 0 4px;
+      font-size: 15px;
+      font-weight: 800;
+      color: #173b63;
+    }
+
+    .module-subtitle {
+      margin: 0 0 10px;
+      font-size: 12px;
+      color: var(--text-subtle);
+      line-height: 1.35;
+    }
+
+    .route-result {
+      margin-top: 8px;
+      border: 1px solid #cfe0f5;
+      border-radius: 10px;
+      background: #f4f9ff;
+      padding: 10px;
+      min-height: 56px;
+    }
+
+    .route-empty {
+      margin: 0;
+      font-size: 12px;
+      color: #5a6f86;
+    }
+
+    .route-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .route-metric {
+      border: 1px solid #d7e6f7;
+      background: #fff;
+      border-radius: 8px;
+      padding: 8px;
+    }
+
+    .route-label {
+      margin: 0 0 4px;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      color: #56708c;
+      font-weight: 700;
+    }
+
+    .route-value {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 800;
+      color: #163a62;
+      line-height: 1.1;
+    }
+
+    #routeStatusText {
+      min-height: 18px;
+      margin-top: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-subtle);
+    }
+
     .note {
       margin-top: 12px;
       padding: 10px;
@@ -207,9 +281,9 @@
     </div>
 
     <div class="control-card">
-      <label class="control-label" for="pc4Select">PC4 herkomst</label>
+      <label class="control-label" for="pc4Select">PC4-Isochronenkaart</label>
       <select class="control-input" id="pc4Select">
-        <option value="">Kies een PC4 postcode.../option>
+        <option value="">Kies een PC4 postcode...</option>
       </select>
     </div>
 
@@ -230,6 +304,31 @@
     </div>
 
     <div id="statusText"></div>
+
+    <div class="sidebar-divider" role="separator" aria-hidden="true"></div>
+
+    <h2 class="module-title">PC4 Routeplanner</h2>
+    <p class="module-subtitle">Bereken afstand en reistijd tussen vertrek- en aankomst-PC4.</p>
+
+    <div class="control-card">
+      <label class="control-label" for="routeFromSelect">Vertreklocatie (PC4)</label>
+      <select class="control-input" id="routeFromSelect">
+        <option value="">Kies vertrek-PC4...</option>
+      </select>
+    </div>
+
+    <div class="control-card">
+      <label class="control-label" for="routeToSelect">Aankomstlocatie (PC4)</label>
+      <select class="control-input" id="routeToSelect">
+        <option value="">Kies aankomst-PC4...</option>
+      </select>
+    </div>
+
+    <div id="routeStatusText"></div>
+
+    <div id="routeResult" class="route-result">
+      <p class="route-empty">Selecteer vertrek en aankomst om de route te berekenen.</p>
+    </div>
 
   </aside>
 
@@ -268,6 +367,11 @@ const travelTimeRangeEl = document.getElementById("travelTimeRange");
 const travelTimeValueEl = document.getElementById("travelTimeValue");
 const metricSelectEl = document.getElementById("metricSelect");
 const statusTextEl = document.getElementById("statusText");
+const routeFromSelectEl = document.getElementById("routeFromSelect");
+const routeToSelectEl = document.getElementById("routeToSelect");
+const routeStatusTextEl = document.getElementById("routeStatusText");
+const routeResultEl = document.getElementById("routeResult");
+let routeRowsByOrigin = {};
 
 function setStatus(message, isError = false) {
   statusTextEl.textContent = message;
@@ -361,6 +465,7 @@ fetch(CONFIG.geojsonPath)
 
     allPc4Codes = Object.keys(pc4LayersByCode).sort();
     populateDestinationSelect();
+    populateRoutePlannerSelects();
     map.fitBounds(pc4Layer.getBounds());
   });
 
@@ -429,6 +534,111 @@ function populateDestinationSelect() {
 
   if (previous && codes.includes(previous)) {
     pc4SelectEl.value = previous;
+  }
+}
+
+function populateRoutePlannerSelects() {
+  const prevFrom = routeFromSelectEl.value;
+  const prevTo = routeToSelectEl.value;
+  const codes = allPc4Codes.length > 0 ? allPc4Codes : [];
+
+  routeFromSelectEl.innerHTML = "";
+  routeToSelectEl.innerHTML = "";
+
+  const fromDefault = document.createElement("option");
+  fromDefault.value = "";
+  fromDefault.textContent = "Kies vertrek-PC4...";
+  routeFromSelectEl.appendChild(fromDefault);
+
+  const toDefault = document.createElement("option");
+  toDefault.value = "";
+  toDefault.textContent = "Kies aankomst-PC4...";
+  routeToSelectEl.appendChild(toDefault);
+
+  codes.forEach(pc4 => {
+    const fromOption = document.createElement("option");
+    fromOption.value = pc4;
+    fromOption.textContent = pc4;
+    routeFromSelectEl.appendChild(fromOption);
+
+    const toOption = document.createElement("option");
+    toOption.value = pc4;
+    toOption.textContent = pc4;
+    routeToSelectEl.appendChild(toOption);
+  });
+
+  if (prevFrom && codes.includes(prevFrom)) {
+    routeFromSelectEl.value = prevFrom;
+  }
+
+  if (prevTo && codes.includes(prevTo)) {
+    routeToSelectEl.value = prevTo;
+  }
+}
+
+function setRouteStatus(message, isError = false) {
+  routeStatusTextEl.textContent = message;
+  routeStatusTextEl.style.color = isError ? "#b00020" : "#444";
+}
+
+function showRouteValues(distanceKm, timeMin) {
+  routeResultEl.innerHTML = `
+    <div class="route-grid">
+      <div class="route-metric">
+        <p class="route-label">Afstand</p>
+        <p class="route-value">${distanceKm.toFixed(2)} km</p>
+      </div>
+      <div class="route-metric">
+        <p class="route-label">Reistijd</p>
+        <p class="route-value">${timeMin.toFixed(1)} min</p>
+      </div>
+    </div>
+  `;
+}
+
+async function calculateRoutePlan() {
+  const origin = routeFromSelectEl.value;
+  const destination = routeToSelectEl.value;
+
+  if (!origin || !destination) {
+    routeResultEl.innerHTML = '<p class="route-empty">Selecteer vertrek en aankomst om de route te berekenen.</p>';
+    setRouteStatus("");
+    return;
+  }
+
+  if (origin === destination) {
+    showRouteValues(0, 0);
+    setRouteStatus("Vertrek en aankomst zijn gelijk.");
+    return;
+  }
+
+  try {
+    setRouteStatus(`Route laden voor ${origin} -> ${destination}...`);
+
+    if (!routeRowsByOrigin[origin]) {
+      const { data } = await fetchDtmWithFallback(origin);
+      routeRowsByOrigin[origin] = {};
+      data.results.forEach(row => {
+        routeRowsByOrigin[origin][row.dest_pc4] = {
+          time_min: row.time_min,
+          distance_km: row.distance_km
+        };
+      });
+    }
+
+    const route = routeRowsByOrigin[origin][destination];
+
+    if (!route) {
+      routeResultEl.innerHTML = '<p class="route-empty">Geen routegegevens gevonden voor deze combinatie.</p>';
+      setRouteStatus("Geen data beschikbaar voor deze route.", true);
+      return;
+    }
+
+    showRouteValues(route.distance_km, route.time_min);
+    setRouteStatus("Route berekend.");
+  } catch (err) {
+    routeResultEl.innerHTML = '<p class="route-empty">Kon route niet berekenen.</p>';
+    setRouteStatus(`Fout bij routeberekening: ${err.message}`, true);
   }
 }
 
@@ -597,8 +807,12 @@ travelTimeRangeEl.addEventListener("input", () => {
   updateChoropleth();
 });
 
+routeFromSelectEl.addEventListener("change", calculateRoutePlan);
+routeToSelectEl.addEventListener("change", calculateRoutePlan);
+
 updateTravelTimeLabel();
 setStatus("");
+setRouteStatus("");
 </script>
 
 </body>
