@@ -61,6 +61,7 @@ def ensure_dtm_file(path):
 def load_dtm(path):
     global dtm
     dtm.clear()
+    mirrored_pairs = 0
 
     with open(path, newline='', encoding='utf-8-sig') as f:
         # delimiter automatisch detecteren: ; of ,
@@ -92,6 +93,19 @@ def load_dtm(path):
                 "time_min": time_min,
                 "distance_km": distance_km
             }
+
+            # Vul ontbrekende omgekeerde relatie aan (B->A) zodat de matrix compleet is.
+            if dest not in dtm:
+                dtm[dest] = {}
+
+            if origin not in dtm[dest]:
+                dtm[dest][origin] = {
+                    "time_min": time_min,
+                    "distance_km": distance_km
+                }
+                mirrored_pairs += 1
+
+    print(f"DTM spiegeling toegevoegd: {mirrored_pairs} ontbrekende reverse relaties")
 
 
 # laad de data bij start
