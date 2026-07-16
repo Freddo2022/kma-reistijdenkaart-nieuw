@@ -209,12 +209,12 @@
     <div class="control-card">
       <label class="control-label" for="pc4Select">PC4 herkomst</label>
       <select class="control-input" id="pc4Select">
-        <option value="">Kies een PC4 herkomst...</option>
+        <option value="">Kies een PC4 postcode.../option>
       </select>
     </div>
 
     <div class="control-card">
-      <label class="control-label" for="travelTimeRange">Selectie reistijd (min)</label>
+      <label class="control-label" for="travelTimeRange">Selecteer reistijd (min)</label>
       <div class="slider-row">
         <input id="travelTimeRange" type="range" min="10" max="240" step="5" value="220">
         <span id="travelTimeValue">220 min</span>
@@ -417,7 +417,7 @@ function populateDestinationSelect() {
   pc4SelectEl.innerHTML = "";
   const defaultOpt = document.createElement("option");
   defaultOpt.value = "";
-  defaultOpt.textContent = "Kies een PC4 herkomst...";
+  defaultOpt.textContent = "Kies een PC4 postcode...";
   pc4SelectEl.appendChild(defaultOpt);
 
   codes.forEach(pc4 => {
@@ -554,7 +554,7 @@ pc4SelectEl.addEventListener("change", () => {
   if (!origin) {
     rawRowsByDest = {};
     currentValues = {};
-    setStatus("Kies een PC4 om reistijden te tonen.");
+    setStatus("");
     updateChoropleth();
     return;
   }
@@ -598,7 +598,7 @@ travelTimeRangeEl.addEventListener("input", () => {
 });
 
 updateTravelTimeLabel();
-setStatus("Kies een PC4 om reistijden te tonen.");
+setStatus("");
 </script>
 
 </body>
