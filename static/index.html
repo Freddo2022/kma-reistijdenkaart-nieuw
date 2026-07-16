@@ -278,14 +278,13 @@
         <h1 class="title">ReistijdenKaart Nederland</h1>
         <p class="subtitle">DriveTimeMatrix | PC4 Postcodevlakken</p>
         <br>
-        <h1 class="module-title">PC4-Isochronenkaart</h1>
-      </div>
+        </div>
     </div>
 
-    <h2 class="module-title">Selecteer PC4 postcode</h2>
+    <h1 class="module-title">PC4-Isochronenkaart</h1>
 
     <div class="control-card">
-      <label class="control-label" for="pc4Select">Kies PC4 postcode</label>
+      <label class="control-label" for="pc4Select">Selecteer PC4 postcode</label>
       <select class="control-input" id="pc4Select">
         <option value="">Selecteer PC4 postcode...</option>
       </select>
@@ -527,7 +526,7 @@ function populateDestinationSelect() {
   pc4SelectEl.innerHTML = "";
   const defaultOpt = document.createElement("option");
   defaultOpt.value = "";
-  defaultOpt.textContent = "Kies een PC4 postcode...";
+  defaultOpt.textContent = "Selecteer PC4 postcode...";
   pc4SelectEl.appendChild(defaultOpt);
 
   codes.forEach(pc4 => {
